@@ -1,31 +1,21 @@
-1. Large Language Models: A Survey : https://arxiv.org/pdf/2402.06196
-2. Who Is Sycophantic to Whom? Confident LLMs, Human Deference,
-and the Collapse of Trust Calibration : https://arxiv.org/pdf/2610.31579
-3. Low-Bit N-Gram Embeddings for Language Models - https://arxiv.org/pdf/2610.31646
-4. LLM-Generated or Human-Written?
-Comparing Review and Non-Review Papers on ArXiv - https://arxiv.org/pdf/2601.17036
-5. The Embedder’s Dilemma: LLMs Are Better,
-but at What Cost? - https://arxiv.org/pdf/2608.12875
-6. LLM2VEC-GEN:
-Generative Embeddings from Large Language Models - https://arxiv.org/pdf/2603.10913
-7. Causal2Vec: Improving Decoder-only LLMs as Embedding Models
-through a Contextual Token - https://arxiv.org/pdf/2507.23386
-8. Accelerating LLM Inference via Vector Index Based Output Embeddings - https://arxiv.org/pdf/2608.27460
-9.  vstash: Local-First Hybrid Retrieval with Adaptive Fusion for
-LLM Agents - https://arxiv.org/pdf/2604.15484
-10. SMART: LLM-Augmented Hybrid Retrieval for Dynamic Product
-Ads - https://arxiv.org/pdf/2607.23121
-11. Augmenting Question Answering with A
-Hybrid RAG Approach - https://arxiv.org/pdf/2601.12658
-12. Retrieval-Augmented Generation for Large
-Language Models: A Survey - https://arxiv.org/pdf/2312.10997
-13. Retrieval Augmented Generation (RAG) and Beyond: A Comprehensive
-Survey on How to Make your LLMs use External Data More Wisely - https://arxiv.org/pdf/2409.14924
-14. RAG-ANYTHING: ALL-IN-ONE RAG FRAMEWORK - https://arxiv.org/pdf/2510.12323
-15. RAG-MCP: Mitigating Prompt Bloat in LLM
-Tool Selection via Retrieval-Augmented
-Generation - https://arxiv.org/pdf/2505.03275
-16. RAG or Learning? Understanding the Limits of LLM Adaptation under
-Continuous Knowledge Drift in the Real World - https://arxiv.org/pdf/2604.05096
-17. Retrieval Augmented Generation or Long-Context LLMs?
-A Comprehensive Study and Hybrid Approach - https://arxiv.org/pdf/2407.16833
+2402.06196 | Large Language Models: A Survey
+2610.31579 | Who Is Sycophantic to Whom? Confident LLMs, Human Deference, and the Collapse of Trust Calibration
+2610.31646 | Low-Bit N-Gram Embeddings for Language Models
+2601.17036 | LLM-Generated or Human-Written? Comparing Review and Non-Review Papers on ArXiv
+2608.12875 | The Embedder’s Dilemma: LLMs Are Better, but at What Cost?
+2603.10913 | LLM2VEC-GEN:Generative Embeddings from Large Language Models
+2507.23386 | Causal2Vec: Improving Decoder-only LLMs as Embedding Models through a Contextual Token
+2608.27460 | Accelerating LLM Inference via Vector Index Based Output Embeddings
+2604.15484 | vstash: Local-First Hybrid Retrieval with Adaptive Fusion for LLM Agents
+2607.23121 | SMART: LLM-Augmented Hybrid Retrieval for Dynamic Product Ads
+2601.12658 | Augmenting Question Answering with A Hybrid RAG Approach
+2312.10997 | Retrieval-Augmented Generation for Large Language Models: A Survey
+2409.14924 | Retrieval Augmented Generation (RAG) and Beyond: A Comprehensive Survey on How to Make your LLMs use External Data More Wisely
+2510.12323 | RAG-ANYTHING: ALL-IN-ONE RAG FRAMEWORK
+2505.03275 | RAG-MCP: Mitigating Prompt Bloat in LLM Tool Selection via Retrieval-Augmented Generation
+2604.05096 | RAG or Learning? Understanding the Limits of LLM Adaptation under Continuous Knowledge Drift in the Real World
+2407.16833 | Retrieval Augmented Generation or Long-Context LLMs? A Comprehensive Study and Hybrid Approach
+2401.18059 | RAPTOR: RECURSIVE ABSTRACTIVE PROCESSING FOR TREE-ORGANIZED RETRIEVAL
+2310.11511 | SELF-RAG: LEARNING TO RETRIEVE, GENERATE, AND CRITIQUE THROUGH SELF-REFLECTION
+2403.14403 | Adaptive-RAG: Learning to Adapt Retrieval-Augmented Large Language Models through Question Complexity
+2401.15884 | Corrective Retrieval Augmented Generation
