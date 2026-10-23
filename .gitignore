@@ -1,5 +1,5 @@
 ragenv/
-.env/
+.env
 /data
 .DS_Store
 __pycache__/
