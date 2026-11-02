@@ -15,7 +15,7 @@ Reason: After testing different libraries like pypdf - no paragraph structure, p
 
 Input: List of pages per paper read using PyMuPDF library
 
-Output: Separate text for content, reference and appendix
+Output: Separate text for content, reference and appendix. Dictionary with key as section tags and value contains list of tuples with page number and text corresponding to each section.
 
 Decision: Start with default false for ref_found. For every line in each page of the paper, check for the line that only has references in lower case, attach the text to separate ref_text string and maintain its page number for future citation, make ref_found to true and continue attaching the following strings after ref_found to same ref_text string, so we have content and reference separated. Similarly do it for appendix if its present
 
