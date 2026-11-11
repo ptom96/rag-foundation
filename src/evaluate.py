@@ -18,7 +18,7 @@ top_k = args.top_k
 section_tag = args.section_tag
 refusal_text = "Sorry context doesn't have enough details to answer the question."
 
-path = f"/Users/tomthomas/Documents/rag-foundation/output/{args.run_name}.xlsx"
+path = f"/Users/tomthomas/Documents/rag-foundation/results/{args.run_name}.xlsx"
 if os.path.exists(path):
     raise FileExistsError(f"File '{path}' already exists, please rerun with a different run name.")
 index, chunks = load_index(index_path)
