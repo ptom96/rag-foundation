@@ -1,6 +1,6 @@
 ragenv/
 .env
-/data
+/data/papers
 /output
 .DS_Store
 __pycache__/
