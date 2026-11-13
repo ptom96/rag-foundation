@@ -245,6 +245,130 @@ def chunk_paragraphs(section: list[tuple[int, list[str]]], section_tag: str, doc
     return chunks
 
 
+def semantic_chunking(section: list[tuple[int, list[str]]], section_tag: str, doc_id: str, chunk_size: int = 600, chunk_overlap: int = 150, min_chunk_size: int = 200, similarity_threshold: float = 0.5, debug: bool = False) -> list[Chunk]:
+    """Chunks a section paragraphs.
+
+        Args:
+            section (list[tuple[int, list[str]]]): A list of tuples containing the page number and a list of paragraphs on that page.
+            section_tag (str): The tag or name of the section. Allowed values: ["References", "Content", "Appendix"]
+            doc_id (str): The ID of the document.
+            chunk_size (int, optional): The maximum size of each chunk in characters. Defaults to 600.
+            chunk_overlap (int, optional): The number of characters to overlap between chunks. Defaults to 150.
+            min_chunk_size (int, optional): The minimum size of each chunk in characters. Defaults to 200.
+            similarity_threshold (float, optional): The similarity threshold for determining chunk boundaries. Defaults to 0.5.
+            debug (bool, optional): Whether to enable debug mode. Defaults to False.
+
+        Paragraph upto chunk_size character is considered as a single chunk.
+        If a paragraph short of chunk_size characters, it will be combined with the next paragraph to form a chunk of up to chunk_size characters, if the second paragraph can be added without breaking sentences.
+        If a paragraph exceeds chunk_size characters, it will be split into multiple chunks, ensuring that each chunk ends at a sentence boundary and the succeding chunk starts with an overlap of chunk_overlap characters from preceeding chunk without breaking a sentence with a 10% character tolerance.
+        if a chunk spans multiple pages, the page number will be recorded as the starting page.
+        The chunking logic ensures that sentences are not broken and that overlaps are maintained for context continuity.
+        Returns:
+            list[Chunk]: A list of Chunk objects containing the chunked paragraphs, chunk id, section_tag, page number and doc_id.
+
+    """
+    flat = []
+    for page_number, paragraphs in section:
+        for paragraph in paragraphs:
+            sentences = re.split(r"(?<!\b[A-Z]\.)(?<=[.!?])\s+(?=[A-Z])", paragraph)
+            for sentence in sentences:
+                if len(sentence) <= chunk_size:
+                    flat.append((page_number, sentence))
+                else:
+                    words = sentence.split(" ")
+                    current_chunk = ""
+                    for word in words:
+                        if len(current_chunk) + len(word) + 1 <= chunk_size:
+                            current_chunk += word + " "
+                        else:
+                            if current_chunk:
+                                flat.append((page_number, current_chunk.strip()))
+                            current_chunk = word + " "
+                    if current_chunk:
+                        flat.append((page_number, current_chunk.strip()))
+    buffer = []
+    counter = 0
+    chunks = []
+    embedding_texts = []
+    if not flat:
+        return []
+    for page_number, sentence in flat:
+        embedding_text = "search_document: " + sentence
+        embedding_texts.append(embedding_text)
+    embed_sentences = model.encode(embedding_texts, 
+                        normalize_embeddings=True, 
+                        batch_size=16,
+                        show_progress_bar=False)
+    sims = np.sum(embed_sentences[1:] * embed_sentences[:-1], axis=1)
+    if debug and len(sims) > 0:
+        print("Similarity percentiles:", np.percentile(sims, [10, 20, 30, 50, 70, 90]))
+        return []
+    for idx, (page_number, sentence) in enumerate(flat):
+        string = " ".join([s for _, s in buffer])
+        if not buffer:
+            size = len(string) + len(sentence)
+        else:
+            size = len(string) + len(sentence) + 1
+            similarity = sims[idx-1]
+        if(size <= chunk_size and (not buffer or similarity > similarity_threshold)):
+            buffer.append((page_number, sentence))
+        elif size > chunk_size and buffer and similarity > similarity_threshold:
+            chunk_text = " ".join([s for _, s in buffer])
+            chunk = Chunk(
+                text=chunk_text,
+                chunk_id=doc_id+f"_{section_tag}_{counter:04d}",
+                section_tag=section_tag,
+                page_number=buffer[0][0],
+                doc_id=doc_id
+            )
+            pg_no, txt = buffer[-1]
+            buffer = []
+            if len(txt) <= chunk_overlap * 1.10 and len(sentence + txt) + 1 <= chunk_size:
+                buffer.append((pg_no, txt))
+            counter += 1
+            buffer.append((page_number, sentence))
+            chunks.append(chunk)
+        elif size > chunk_size and buffer and similarity <= similarity_threshold:
+            chunk_text = " ".join([s for _, s in buffer])
+            chunk = Chunk(
+                text=chunk_text,
+                chunk_id=doc_id+f"_{section_tag}_{counter:04d}",
+                section_tag=section_tag,
+                page_number=buffer[0][0],
+                doc_id=doc_id
+            )
+            buffer = []
+            counter += 1
+            buffer.append((page_number, sentence))
+            chunks.append(chunk)
+        elif size <= chunk_size and len(string) > min_chunk_size and similarity <= similarity_threshold:
+            chunk_text = " ".join([s for _, s in buffer])
+            chunk = Chunk(
+                text=chunk_text,
+                chunk_id=doc_id+f"_{section_tag}_{counter:04d}",
+                section_tag=section_tag,
+                page_number=buffer[0][0],
+                doc_id=doc_id
+            )
+            buffer = []
+            counter += 1
+            buffer.append((page_number, sentence))
+            chunks.append(chunk)
+        elif size <= chunk_size and len(string) <= min_chunk_size and similarity <= similarity_threshold:
+            buffer.append((page_number, sentence))
+    if buffer:
+        chunk = Chunk(
+            text=" ".join([s for _, s in buffer]),
+            chunk_id=doc_id+f"_{section_tag}_{counter:04d}",
+            section_tag=section_tag,
+            page_number=buffer[0][0],
+            doc_id=doc_id
+        )
+        chunks.append(chunk)
+    return chunks
+
+        
+
 def build_index(chunks: list[Chunk], run_name: str) -> None:
     """Builds an index for the given list of chunks. Store vector embeddings for each chunk as numpy arrays and store the chunk text and metadatas as json file.
     The function expects the chunks from all 21 papers to be included in the list.

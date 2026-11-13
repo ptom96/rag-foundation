@@ -1,4 +1,4 @@
-from pipeline import load_pages, split_sections, clean_section, chunk_paragraphs, build_index
+from pipeline import load_pages, split_sections, clean_section, chunk_paragraphs, build_index, semantic_chunking
 from pathlib import Path
 
 
@@ -8,12 +8,18 @@ parser.add_argument("--folder_path", type=str, default="/Users/tomthomas/Documen
 parser.add_argument("--chunk_size", type=int, default=600)
 parser.add_argument("--chunk_overlap", type=int, default=150)
 parser.add_argument("--run_name", type=str, default="stage1")
+parser.add_argument("--similarity_threshold", type=float, default=0.64)
+parser.add_argument("--min_chunk_size", type=int, default=200)
+parser.add_argument("--chunking_strategy", type=str, default="recursive")
 args = parser.parse_args()
 FOLDER_PATH = args.folder_path
 paths = list(Path(FOLDER_PATH).glob("*.pdf"))
 chunk_size = args.chunk_size
 chunk_overlap = args.chunk_overlap
 run_name = args.run_name
+similarity_threshold = args.similarity_threshold
+min_chunk_size = args.min_chunk_size
+chunking_strategy = args.chunking_strategy
 print(f"Running build with run_name={run_name}")
 
 grand_total = 0
@@ -26,7 +32,10 @@ for path in paths:
 
     for section_name, section_pages in sections.items():
         cleaned_section = clean_section(section_pages)
-        chunks = chunk_paragraphs(cleaned_section, section_name, doc_id, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        if chunking_strategy == "recursive":
+            chunks = chunk_paragraphs(cleaned_section, section_name, doc_id, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        else:
+            chunks = semantic_chunking(cleaned_section, section_name, doc_id, chunk_size=chunk_size, chunk_overlap=chunk_overlap, min_chunk_size=min_chunk_size, similarity_threshold=similarity_threshold, debug=False)
         section_counts[section_name] = len(chunks)
         all_chunks.extend(chunks)
 
