@@ -245,7 +245,7 @@ def chunk_paragraphs(section: list[tuple[int, list[str]]], section_tag: str, doc
     return chunks
 
 
-def build_index(chunks: list[Chunk]) -> None:
+def build_index(chunks: list[Chunk], run_name: str) -> None:
     """Builds an index for the given list of chunks. Store vector embeddings for each chunk as numpy arrays and store the chunk text and metadatas as json file.
     The function expects the chunks from all 21 papers to be included in the list.
 
@@ -278,17 +278,19 @@ def build_index(chunks: list[Chunk]) -> None:
     print(f"Number of embedding texts: {len(embedding_texts)}")
     print(f"Shape of embeddings: {embeddings.shape}")
     assert len(embedding_texts) == embeddings.shape[0]
-    if not os.path.exists(OUTPUT_PATH):
-        os.makedirs(OUTPUT_PATH, exist_ok=True)
-    np.save(f"{OUTPUT_PATH}/index.npy", embeddings)
-    with open(f"{OUTPUT_PATH}/metadata.json", "w", encoding="utf-8") as f:
+    output_path = f"/Users/tomthomas/Documents/rag-foundation/output/{run_name}"
+    if not os.path.exists(output_path):
+        os.makedirs(output_path, exist_ok=True)
+    np.save(f"{output_path}/index.npy", embeddings)
+    with open(f"{output_path}/metadata.json", "w", encoding="utf-8") as f:
         json.dump(metadata_json, f)
 
-def load_index(path: str) -> tuple[np.ndarray, list[Chunk]]:
+def load_index(path: str, run_name: str) -> tuple[np.ndarray, list[Chunk]]:
     """Loads the index and metadata from the given path.
 
         Args:
             path (str): The path to the index files - rag-foundation/output.
+            run_name (str): The name of the run to load the index for.
 
         The path corresponds to the directory where the index files are stored should be same as during the build_index function.
         The index files are expected to be in the format of numpy arrays for vector embeddings and JSON files for metadata.
@@ -296,8 +298,8 @@ def load_index(path: str) -> tuple[np.ndarray, list[Chunk]]:
             tuple[np.ndarray, list[Chunk]]: A tuple containing the vector embeddings as a numpy array and the metadata as a list of chunks.
 
     """
-    index = np.load(f"{path}/index.npy")
-    with open(f"{path}/metadata.json", "r", encoding="utf-8") as f:
+    index = np.load(f"{path}/{run_name}/index.npy")
+    with open(f"{path}/{run_name}/metadata.json", "r", encoding="utf-8") as f:
         metadata = json.load(f)
     chunks = [Chunk(**chunk_data) for chunk_data in metadata]
     assert len(index) == len(chunks)

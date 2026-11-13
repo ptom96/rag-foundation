@@ -6,13 +6,15 @@ parser.add_argument("--query", type=str, default="What is RAG?")
 parser.add_argument("--top_k", type=int, default=5)
 parser.add_argument("--index_path", type=str, default="/Users/tomthomas/Documents/rag-foundation/data/index")
 parser.add_argument("--section_tag", type=str, default="Content")
+parser.add_argument("--run_name", type=str, default="stage1")
 args = parser.parse_args()
 query = args.query
 top_k = args.top_k
 index_path = args.index_path
 section_tag = args.section_tag
+run_name = args.run_name
 
-index, chunks = load_index(index_path)
+index, chunks = load_index(index_path, run_name=run_name)
 retrieved_docs = retrieve(query, index, chunks, top_k=top_k, section_tag=section_tag)
 answer_text = answer(query, retrieved_docs)
 citation_check = check_citation(answer_text, retrieved_docs)

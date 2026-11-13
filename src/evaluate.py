@@ -21,7 +21,7 @@ refusal_text = "Sorry context doesn't have enough details to answer the question
 path = f"/Users/tomthomas/Documents/rag-foundation/results/{args.run_name}.xlsx"
 if os.path.exists(path):
     raise FileExistsError(f"File '{path}' already exists, please rerun with a different run name.")
-index, chunks = load_index(index_path)
+index, chunks = load_index(index_path, run_name=args.run_name)
 questions_df = pd.read_excel(question_path)
 
 if args.limit:
@@ -49,13 +49,16 @@ for idx, row in questions_df.iterrows():
             "retrieved_docs": None,
             "top_chunk": None,
             "response": response,
+            "hit_top5":"",
+            "accuracy":"",
+            "notes":"",
             "citations": None,
             "citation_check": "Error",
             "expected_answer": expected_answer,
             "expected_doc_id": expected_doc_id,
             "expected_page_number": expected_page_number,
             "expected_type": expected_type,
-            "evidence": evidence,
+            "evidence": evidence
         })
         continue
     
@@ -70,13 +73,16 @@ for idx, row in questions_df.iterrows():
         "retrieved_docs": "|".join([retrieved_doc.chunk.doc_id+":"+str(retrieved_doc.chunk.page_number)+":score"+str(retrieved_doc.score) for retrieved_doc in retrieved_docs]),
         "top_chunk": top_chunk.chunk.doc_id+":"+str(top_chunk.chunk.page_number)+":"+top_chunk.chunk.text[:150] +":score"+str(top_chunk.score) if retrieved_docs else None,
         "response": " ".join(sentence for sentence in sentences),
+        "hit_top5":"",
+        "accuracy":"",
+        "notes":"",
         "citations": "|".join([c.doc_id+":"+str(c.page_number) for c in citations]) if citations else None,
         "citation_check": "|".join([f"{status}:{cit.doc_id+':'+str(cit.page_number)}" for status, cit in citation_check]) if citation_check else ("Refusal" if refusal_text in sentences else "Uncited"),
         "expected_answer": expected_answer,
         "expected_doc_id": expected_doc_id,
         "expected_page_number": expected_page_number,
         "expected_type": expected_type,
-        "evidence": evidence,
+        "evidence": evidence
     })
 results_df = pd.DataFrame(results)
 results_df.to_excel(path, index=False)
