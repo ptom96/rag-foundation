@@ -1,4 +1,4 @@
-from pipeline import load_index, retrieve, answer, check_citation
+from pipeline import load_index, retrieve, answer, check_citation, retrievepg
 import argparse
 import pandas as pd
 import openpyxl
@@ -11,7 +11,25 @@ parser.add_argument("--top_k", type=int, default=5, required=False)
 parser.add_argument("--section_tag", type=str, default="Content")
 parser.add_argument("--run_name", type=str, default="stage1")
 parser.add_argument("--limit", type=int, default=None)
+parser.add_argument("--ef_search", type=int, default=None)
+parser.add_argument("--use_index", action=argparse.BooleanOptionalAction, default=False)
+parser.add_argument("--debug", action=argparse.BooleanOptionalAction, default=False)
+parser.add_argument("--search_mode", type=str, default="seqsearch")
+def parse_doc_id(value: str) -> str | None:
+    return None if value.casefold() == "none" else value
+
+parser.add_argument(
+    "--paper_list",
+    nargs="*",
+    type=parse_doc_id,
+    default=None,
+)
 args = parser.parse_args()
+ef_search = args.ef_search
+use_index = args.use_index
+debug = args.debug
+search_mode = args.search_mode
+paper_list = args.paper_list
 question_path = args.question_path
 index_path = args.index_path
 top_k = args.top_k
@@ -21,7 +39,8 @@ refusal_text = "Sorry context doesn't have enough details to answer the question
 path = f"/Users/tomthomas/Documents/rag-foundation/results/{args.run_name}.xlsx"
 if os.path.exists(path):
     raise FileExistsError(f"File '{path}' already exists, please rerun with a different run name.")
-index, chunks = load_index(index_path, run_name=args.run_name)
+if search_mode == "seqsearch":
+    index, chunks = load_index(index_path, run_name=args.run_name)
 questions_df = pd.read_excel(question_path)
 
 if args.limit:
@@ -37,7 +56,11 @@ for idx, row in questions_df.iterrows():
     expected_type = row["type"]
     evidence = row["evidence"]
     try:
-        retrieved_docs = retrieve(question, index, chunks, top_k=top_k, section_tag=section_tag)
+        if search_mode == "seqsearch":
+            retrieved_docs = retrieve(question, index, chunks, top_k=top_k, section_tag=section_tag)
+        else:
+            paper = paper_list[idx] if paper_list else None
+            retrieved_docs = retrievepg(question, top_k=top_k, section_tag=section_tag, use_index=use_index, debug=debug, doc_id=paper, ef_search=ef_search)
         if retrieved_docs:
             top_chunk = max(retrieved_docs, key=lambda item: item.score)
         answer_text = answer(question, retrieved_docs)

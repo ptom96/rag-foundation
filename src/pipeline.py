@@ -5,16 +5,24 @@ from pathlib import Path
 from sentence_transformers import SentenceTransformer
 from typing import Literal
 from ollama import chat
+import psycopg
+from dotenv import load_dotenv
+from pgvector.psycopg import register_vector
+load_dotenv()
 import pymupdf
 import os
 import re
 import numpy as np
 import json
+import warnings
 
 FOLDER_PATH = "/Users/tomthomas/Documents/rag-foundation/data/papers"
 paths = list(Path(FOLDER_PATH).glob("*.pdf"))
 OUTPUT_PATH = "/Users/tomthomas/Documents/rag-foundation/output"
 model = SentenceTransformer("nomic-ai/nomic-embed-text-v1.5", trust_remote_code=True, device="cpu")
+password = os.getenv("POSTGRES_PASSWORD")
+conn = psycopg.connect(dbname="postgres", user="postgres", host="localhost", password=password, autocommit = True, port=5432)
+register_vector(conn)
 
 class Chunk(BaseModel):
     text: str
@@ -460,6 +468,64 @@ def retrieve(query: str, index: np.ndarray, chunks: list[Chunk], top_k: int = 5,
         chunk = chunks_filtered[pos]
         retrieved_chunks.append(RetrievedChunk(chunk=chunk, score=np.float32(similarities[pos])))
     return retrieved_chunks
+
+def retrievepg(query: str, top_k: int, section_tag: str, use_index: bool, debug: bool, doc_id: str | None = None, ef_search: int | None = None):
+    """
+    Retrieves chunks from the PostgreSQL database based on the query embedding and section tag.
+
+        Args:
+            query (str): The query string to search for.
+            top_k (int): The number of top results to return.
+            section_tag (str): The section tag to consider for similarity.
+            use_index (bool): Whether to set the index for the query.
+            doc_id (str | None, optional): The document ID to filter the results by. Defaults to None.
+            ef_search (int | None, optional): The ef_search parameter for the query. Defaults to None.
+        Returns:
+            list[RetrievedChunk]: A list of RetrievedChunk objects representing the top_k most similar chunks.
+    """
+    retrievedpg_chunks = []
+    embed_text = "search_query: " + query
+    embed_vector = model.encode([embed_text], normalize_embeddings=True)[0]
+    with conn.cursor() as cur:
+        if use_index:
+            cur.execute("SET enable_seqscan = off;")
+            cur.execute("SET enable_indexscan = on;")
+        else:
+            cur.execute("SET enable_indexscan = off;")
+            cur.execute("SET enable_seqscan = on;")
+        if ef_search is not None:
+            cur.execute(f"SET hnsw.ef_search = {int(ef_search)};")
+        else:
+            cur.execute("RESET hnsw.ef_search;")
+        if doc_id is not None:
+            cur.execute(
+                "SELECT vecembed <=> %s AS distance, chunk_id, run_name, text, section_tag, page_number, doc_id FROM chunks_300_75 WHERE section_tag = %s AND doc_id = %s ORDER BY vecembed <=> %s LIMIT %s",
+                (embed_vector, section_tag, doc_id, embed_vector, top_k)
+            )
+        else:
+            cur.execute(
+                "SELECT vecembed <=> %s AS distance, chunk_id, run_name, text, section_tag, page_number, doc_id FROM chunks_300_75 WHERE section_tag = %s ORDER BY vecembed <=> %s LIMIT %s",
+                (embed_vector, section_tag, embed_vector, top_k)
+            )
+        if debug:
+            cur.execute(
+                "EXPLAIN (ANALYZE, BUFFERS) SELECT vecembed <=> %s AS distance, chunk_id, run_name, text, section_tag, page_number, doc_id FROM chunks_300_75 WHERE section_tag = %s AND doc_id = %s ORDER BY vecembed <=> %s LIMIT %s",
+                (embed_vector, section_tag, doc_id, embed_vector, top_k))
+            print("\n".join(row[0] for row in cur.fetchall()))
+        # print("\n".join(row[0] for row in cur.fetchall()))
+        for row in cur.fetchall():
+            chunk = Chunk(
+                chunk_id=row[1],
+                text=row[3],
+                section_tag=row[4],
+                page_number=row[5],
+                doc_id=row[6]
+            )
+            score = 1 - row[0]
+            retrievedpg_chunks.append(RetrievedChunk(chunk=chunk, score=np.float32(score)))
+        if len(retrievedpg_chunks) < top_k:
+            warnings.warn("Not enough retrieved chunks to satisfy top_k requirement.")
+    return retrievedpg_chunks
 
 def check_citation(answer: Answer, retrieved_chunks: list[RetrievedChunk]) -> list[tuple[bool, Citation]]:
     """Checks the citation in the given answer.
